@@ -1,10 +1,29 @@
-import { DescribeImagesCommand, ECRClient, ImageDetail } from "@aws-sdk/client-ecr";
+import { DescribeImagesCommand, ECRClient, ImageDetail, ScanningConfigurationFailureCode } from "@aws-sdk/client-ecr";
 import { AmazonECRService, AwsEcrImagesResponse } from "./types";
+import { coreServices, createServiceFactory, createServiceRef, LoggerService } from '@backstage/backend-plugin-api';
+import { Config } from '@backstage/config';
 
 export class DefaultAmazonEcrService implements AmazonECRService {
+    private config: Config;
+    private logger: LoggerService;
+
+    constructor(config: Config, options: { logger: LoggerService }) {
+        this.config = config;
+        this.logger = options.logger;
+    }
+
+    static async fromConfig(
+        config: Config,
+        options: {
+            logger: LoggerService;
+        }
+    ) {
+        return new DefaultAmazonEcrService(config, options);
+    }
+
     async getListImages(region: string, repositoryName: string): Promise<AwsEcrImagesResponse> {
 
-        const ecrClient = new ECRClient({ region: "ap-northeast-2" });
+        const ecrClient = new ECRClient({ region: region });
 
         try {
             const command = new DescribeImagesCommand({ repositoryName });
@@ -20,3 +39,23 @@ export class DefaultAmazonEcrService implements AmazonECRService {
         }
     }
 }
+
+export const amazonEcrServiceRef = createServiceRef<AmazonECRService>({
+    id: 'amazon-ecr.api',
+    defaultFactory: async service =>
+        createServiceFactory({
+            service,
+            deps: {
+                logger: coreServices.logger,
+                config: coreServices.rootConfig,
+
+            },
+            async factory({ logger, config }) {
+                const impl = await DefaultAmazonEcrService.fromConfig(config, {
+                    logger,
+                });
+
+                return impl;
+            }
+        })
+});

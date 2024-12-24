@@ -2,9 +2,8 @@ import {
   coreServices,
   createBackendPlugin,
 } from '@backstage/backend-plugin-api';
-import { createRouter } from './router';
 import { catalogServiceRef } from '@backstage/plugin-catalog-node/alpha';
-import { createTodoListService } from './services/TodoListService';
+import { amazonEcrServiceRef, createRouter } from './services/router';
 
 /**
  * ecrPlugin backend plugin
@@ -12,7 +11,7 @@ import { createTodoListService } from './services/TodoListService';
  * @public
  */
 export const ecrPlugin = createBackendPlugin({
-  pluginId: 'ecr',
+  pluginId: 'amazon-ecr',
   register(env) {
     env.registerInit({
       deps: {
@@ -20,21 +19,16 @@ export const ecrPlugin = createBackendPlugin({
         auth: coreServices.auth,
         httpAuth: coreServices.httpAuth,
         httpRouter: coreServices.httpRouter,
+        amazonEcrApi: amazonEcrServiceRef,
         catalog: catalogServiceRef,
       },
-      async init({ logger, auth, httpAuth, httpRouter, catalog }) {
-        const todoListService = await createTodoListService({
-          logger,
-          auth,
-          catalog,
-        });
-
+      async init({ logger, auth, httpAuth, httpRouter, catalog, amazonEcrApi }) {
         httpRouter.use(
           await createRouter({
-            httpAuth,
-            todoListService,
-          }),
-        );
+            logger,
+            amazonEcrApi: amazonEcrApi
+          })
+        )
       },
     });
   },
