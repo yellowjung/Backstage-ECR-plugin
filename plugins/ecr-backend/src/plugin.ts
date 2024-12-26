@@ -13,20 +13,27 @@ import { amazonEcrServiceRef, createRouter } from './services/router';
 export const ecrPlugin = createBackendPlugin({
   pluginId: 'amazon-ecr',
   register(env) {
+
     env.registerInit({
       deps: {
         logger: coreServices.logger,
         auth: coreServices.auth,
-        httpAuth: coreServices.httpAuth,
+        // httpAuth: coreServices.httpAuth,
         httpRouter: coreServices.httpRouter,
         amazonEcrApi: amazonEcrServiceRef,
-        catalog: catalogServiceRef,
+        discovery: coreServices.discovery,
+        // catalog: catalogServiceRef,
       },
-      async init({ logger, auth, httpAuth, httpRouter, catalog, amazonEcrApi }) {
+      async init({ logger, httpRouter, amazonEcrApi, auth, discovery }) {
+        logger.info('Initializing amazon-ecr plugin...');
+        logger.info('Setting up amazon-ecr ourtes...');
         httpRouter.use(
           await createRouter({
             logger,
-            amazonEcrApi: amazonEcrApi
+            amazonEcrApi: amazonEcrApi,
+            auth,
+            // httpAuth,
+            discovery
           })
         )
       },
